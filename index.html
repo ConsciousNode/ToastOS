@@ -1,0 +1,2598 @@
+<!DOCTYPE html>
+<!--
+  ToastOS — A graphical operating system that runs inside a single slice of toast.
+  ConsciousNode SoftWorks goof build.
+
+  MIT License
+  Copyright (c) 2026 ConsciousNode SoftWorks
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ToastOS — ConsciousNode SoftWorks</title>
+  <style>
+    :root {
+      --crust-width: 14px;
+      --crust-color: #9e6228;
+      --crust-dark: #6b3f16;
+      --crumb-bg: #f6e7c1;
+      --ui-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--ui-font);
+      background:
+        radial-gradient(circle at 30% 20%, #e7d8c3 0%, #cbb496 45%, #a58b6c 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Countertop subtle wood grain */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.14;
+      background-image: repeating-linear-gradient(
+        90deg,
+        rgba(90, 60, 30, 0.25) 0px,
+        rgba(90, 60, 30, 0.25) 2px,
+        transparent 2px,
+        transparent 18px
+      );
+    }
+
+    /* Toaster Chassis (Top-Down View) */
+    .toaster-chassis {
+      position: relative;
+      width: min(96vw, 1020px);
+      height: min(94vh, 720px);
+      border-radius: 44px;
+      padding: 24px 128px 24px 28px;
+      background:
+        linear-gradient(145deg, #f7f9fc 0%, #c8cfd8 22%, #8d96a3 50%, #dce2ea 78%, #77808c 100%);
+      box-shadow:
+        0 28px 65px rgba(35, 22, 10, 0.55),
+        inset 0 3px 6px rgba(255, 255, 255, 0.9),
+        inset 0 -6px 12px rgba(40, 46, 54, 0.55);
+      border: 2px solid #6b737f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.08s ease;
+    }
+
+    .toaster-chassis.shaking {
+      animation: toaster-shake 0.45s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes toaster-shake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-8px, -4px) rotate(-1.2deg); }
+      30% { transform: translate(9px, 4px) rotate(1.2deg); }
+      45% { transform: translate(-7px, 3px) rotate(-0.8deg); }
+      60% { transform: translate(7px, -3px) rotate(0.8deg); }
+      75% { transform: translate(-4px, 2px) rotate(-0.4deg); }
+    }
+
+    /* Rubber feet peeking under corners */
+    .toaster-foot {
+      position: absolute;
+      width: 34px;
+      height: 16px;
+      background: #23262b;
+      border-radius: 8px;
+      z-index: -1;
+    }
+    .foot-tl { top: 18px; left: -8px; }
+    .foot-bl { bottom: 18px; left: -8px; }
+    .foot-tr { top: 18px; right: -8px; }
+    .foot-br { bottom: 18px; right: -8px; }
+
+    /* Engraved branding on chrome top */
+    .toaster-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 36px;
+      font-size: 10px;
+      letter-spacing: 1.6px;
+      font-weight: 700;
+      color: rgba(45, 52, 62, 0.72);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+      pointer-events: none;
+    }
+
+    /* Heat vents on left bezel */
+    .toaster-vents {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .vent-slot {
+      width: 8px;
+      height: 36px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #2a2e33, #4a5058);
+      box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    /* Single Toaster Slot */
+    .toaster-slot {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 26px;
+      padding: 12px;
+      background: linear-gradient(180deg, #1b1714 0%, #2b231d 50%, #151210 100%);
+      box-shadow:
+        inset 0 10px 24px rgba(0, 0, 0, 0.95),
+        inset 0 0 0 3px #4b525c,
+        0 2px 0 rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Heating coil glow inside slot */
+    .slot-coils {
+      position: absolute;
+      inset: 6px;
+      border-radius: 20px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease, box-shadow 0.4s ease;
+      box-shadow: inset 0 0 26px 6px rgba(255, 94, 24, 0.65);
+    }
+    .toaster-chassis.mode-toast .slot-coils.active {
+      opacity: 1;
+      box-shadow: inset 0 0 34px 8px rgba(255, 85, 16, 0.85);
+    }
+    .toaster-chassis.mode-bread .slot-coils.active {
+      opacity: 0.45;
+      box-shadow: inset 0 0 22px 4px rgba(255, 115, 36, 0.5);
+    }
+    .toaster-chassis.mode-frozen .slot-coils.active {
+      opacity: 0.75;
+      box-shadow: inset 0 0 28px 6px rgba(110, 205, 255, 0.65);
+    }
+
+    /* Right Control Panel on Chrome */
+    .toaster-controls {
+      position: absolute;
+      right: 18px;
+      top: 26px;
+      bottom: 26px;
+      width: 92px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 6px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(140,148,160,0.25));
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.75), 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    /* Balanced Ternary Dial */
+    .dial-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+    .control-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #2f3640;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .ternary-labels {
+      display: flex;
+      justify-content: space-between;
+      width: 74px;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .ternary-btn {
+      background: none;
+      border: none;
+      padding: 2px 5px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      font-weight: 800;
+      color: #3d4552;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ternary-btn:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+    .ternary-btn.active[data-val="T"] {
+      background: #0ea5e9;
+      color: #fff;
+    }
+    .ternary-btn.active[data-val="0"] {
+      background: #475569;
+      color: #fff;
+    }
+    .ternary-btn.active[data-val="1"] {
+      background: #ea580c;
+      color: #fff;
+    }
+
+    .dial-knob {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #f8fafc, #94a3b8 65%, #475569 100%);
+      border: 2px solid #334155;
+      box-shadow: 0 5px 10px rgba(0,0,0,0.35), inset 0 1px 2px #fff;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .dial-knob::after {
+      content: "";
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 16px;
+      border-radius: 2px;
+      background: #1e293b;
+    }
+    .dial-knob[data-setting="T"] { transform: rotate(-48deg); }
+    .dial-knob[data-setting="0"] { transform: rotate(0deg); }
+    .dial-knob[data-setting="1"] { transform: rotate(48deg); }
+
+    .dial-readout {
+      font-size: 10px;
+      font-weight: 700;
+      color: #1e293b;
+      text-align: center;
+      min-height: 14px;
+    }
+
+    /* Toaster Lever */
+    .lever-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .lever-track {
+      width: 24px;
+      height: 118px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #181b20, #343a44);
+      box-shadow: inset 0 3px 8px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.7);
+      position: relative;
+      padding: 6px 0;
+    }
+    .lever-handle {
+      position: absolute;
+      left: 50%;
+      top: 8px;
+      transform: translateX(-50%);
+      width: 68px;
+      height: 28px;
+      border-radius: 10px;
+      border: 2px solid #1e293b;
+      background: linear-gradient(180deg, #3b4252 0%, #1e232b 100%);
+      box-shadow: 0 5px 10px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f8fafc;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      transition: top 0.28s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.2s;
+    }
+    .lever-handle:hover {
+      background: linear-gradient(180deg, #4b5568 0%, #282e38 100%);
+    }
+    .lever-handle.down {
+      top: 82px;
+    }
+
+    .status-led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #334155;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .status-led.on {
+      background: #f97316;
+      box-shadow: 0 0 10px #f97316, inset 0 1px 2px #ffedd5;
+    }
+    .status-led.frozen {
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8, inset 0 1px 2px #e0f2fe;
+    }
+
+    /* THE SLICE OF BREAD (The Display!) */
+    .bread-slice {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 38px 38px 18px 18px;
+      background: linear-gradient(145deg, var(--crust-color), var(--crust-dark));
+      padding: var(--crust-width);
+      box-shadow:
+        0 14px 28px rgba(0,0,0,0.75),
+        inset 0 2px 6px rgba(255, 224, 178, 0.35),
+        inset 0 -3px 8px rgba(45, 22, 6, 0.6);
+      display: flex;
+      flex-direction: column;
+      transform: translateY(14px) scale(0.92);
+      opacity: 0.35;
+      filter: brightness(0.45);
+      transition:
+        transform 0.55s cubic-bezier(0.22, 1.25, 0.36, 1),
+        opacity 0.45s ease,
+        filter 0.45s ease,
+        padding 0.2s ease;
+    }
+
+    .bread-slice.booted {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      filter: brightness(1);
+    }
+
+    .bread-slice.ejecting {
+      transform: translateY(-95px) scale(1.06) rotate(-2deg);
+      opacity: 0;
+    }
+
+    /* Crumb Screen Area inside Crust Bezel */
+    .crumb-screen {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px 24px 10px 10px;
+      overflow: hidden;
+      background-color: var(--crumb-bg);
+      box-shadow: inset 0 0 14px rgba(72, 42, 14, 0.32);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Procedural Bread Texture Canvas */
+    #breadTextureCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Browning Tint Overlay */
+    #browningOverlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      transition: background 0.5s linear;
+    }
+
+    /* Frost Overlay when Dial = T */
+    #frostOverlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(186, 230, 253, 0.48), transparent 36%),
+        radial-gradient(circle at 100% 0%, rgba(186, 230, 253, 0.48), transparent 36%),
+        radial-gradient(circle at 0% 100%, rgba(186, 230, 253, 0.4), transparent 36%),
+        radial-gradient(circle at 100% 100%, rgba(186, 230, 253, 0.4), transparent 36%);
+      box-shadow: inset 0 0 36px rgba(125, 211, 252, 0.55);
+    }
+    .toaster-chassis.mode-frozen #frostOverlay {
+      opacity: 1;
+    }
+
+    /* Falling Crumbs Canvas (when burnt) */
+    #crumbParticleCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 55;
+    }
+
+    /* Unbooted Prompt */
+    .unbooted-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(24, 16, 10, 0.55);
+      color: #fde68a;
+      text-align: center;
+      padding: 20px;
+      gap: 10px;
+    }
+    .unbooted-overlay.hidden {
+      display: none;
+    }
+    .unbooted-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .unbooted-sub {
+      font-size: 13px;
+      color: #fef3c7;
+      max-width: 320px;
+    }
+    .boot-cta-btn {
+      margin-top: 6px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #f59e0b;
+      background: #d97706;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .boot-cta-btn:hover {
+      background: #b45309;
+    }
+
+    /* Boot Terminal Screen */
+    .boot-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 65;
+      background: rgba(34, 24, 15, 0.93);
+      color: #fcd34d;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      padding: 22px 26px;
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .boot-screen.active {
+      display: flex;
+    }
+    .boot-line {
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+    .boot-ok { color: #86efac; }
+
+    /* Desktop Surface */
+    .desktop-area {
+      position: relative;
+      flex: 1;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    /* Desktop Icons */
+    .desktop-icons {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 10px;
+      z-index: 11;
+    }
+    .desk-icon {
+      width: 78px;
+      padding: 6px 4px;
+      border-radius: 10px;
+      background: rgba(255, 250, 238, 0.55);
+      border: 1px solid rgba(120, 72, 24, 0.22);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s;
+      text-align: center;
+    }
+    .desk-icon:hover {
+      background: rgba(255, 250, 238, 0.88);
+      transform: translateY(-1px);
+    }
+    .desk-icon svg {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+    .desk-icon span {
+      font-size: 11px;
+      font-weight: 700;
+      color: #3b230d;
+      line-height: 1.15;
+    }
+
+    /* Windows */
+    .os-window {
+      position: absolute;
+      min-width: 280px;
+      min-height: 200px;
+      border-radius: 12px;
+      background: rgba(255, 251, 242, 0.95);
+      border: 2px solid #8c5623;
+      box-shadow: 0 10px 26px rgba(46, 26, 8, 0.32);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .os-window.focused {
+      border-color: #5c3310;
+      box-shadow: 0 14px 32px rgba(36, 18, 4, 0.42);
+    }
+    .toaster-chassis.mode-frozen .os-window {
+      border-color: #38bdf8;
+      box-shadow: 0 10px 24px rgba(14, 116, 144, 0.28), inset 0 0 14px rgba(186, 230, 253, 0.55);
+    }
+
+    /* Ice crystal corner decorations on windows when frozen */
+    .window-ice {
+      display: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 44px;
+      height: 44px;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .toaster-chassis.mode-frozen .window-ice {
+      display: block;
+    }
+
+    .win-titlebar {
+      height: 30px;
+      padding: 0 10px;
+      background: linear-gradient(180deg, #e5b776 0%, #cc9349 100%);
+      border-bottom: 1px solid #9c6629;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+    .win-titlebar:active {
+      cursor: grabbing;
+    }
+    .toaster-chassis.mode-frozen .win-titlebar {
+      background: linear-gradient(180deg, #bae6fd 0%, #7dd3fc 100%);
+      border-bottom-color: #0284c7;
+    }
+    .win-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #2f1a06;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .win-controls {
+      display: flex;
+      gap: 5px;
+    }
+    .win-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.28);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .win-btn-min { background: #fde047; color: #422006; }
+    .win-btn-close { background: #f87171; color: #450a0a; }
+    .win-btn:hover { filter: brightness(1.08); }
+
+    .win-body {
+      flex: 1;
+      overflow: auto;
+      padding: 10px;
+      font-size: 12px;
+      color: #2d1b0a;
+      position: relative;
+      z-index: 2;
+      user-select: text;
+    }
+
+    /* Burnt Warning Banner */
+    .burnt-banner {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      z-index: 45;
+      background: rgba(127, 29, 29, 0.92);
+      color: #fef2f2;
+      border: 1px solid #f87171;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+      animation: pulse-warn 1.2s infinite;
+    }
+    .burnt-banner.visible {
+      display: flex;
+    }
+    @keyframes pulse-warn {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    /* Taskbar */
+    .taskbar {
+      height: 36px;
+      z-index: 40;
+      background: linear-gradient(180deg, rgba(114, 66, 22, 0.92), rgba(74, 41, 12, 0.96));
+      border-top: 2px solid #d49b54;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: #fef3c7;
+      flex-shrink: 0;
+    }
+    .taskbar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      flex: 1;
+    }
+    .start-btn {
+      padding: 4px 10px;
+      border-radius: 7px;
+      border: 1px solid #f59e0b;
+      background: linear-gradient(180deg, #f59e0b, #b45309);
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .start-btn:hover { filter: brightness(1.08); }
+
+    .task-tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    .task-tab {
+      padding: 4px 9px;
+      border-radius: 6px;
+      border: 1px solid rgba(254, 243, 199, 0.25);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fef3c7;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .task-tab.active {
+      background: rgba(254, 243, 199, 0.28);
+      border-color: #fcd34d;
+      font-weight: 800;
+    }
+
+    .taskbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .status-pill {
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255,255,255,0.16);
+      font-weight: 700;
+    }
+    .mute-btn {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.22);
+      color: #fef3c7;
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* Start Menu */
+    .start-menu {
+      position: absolute;
+      bottom: 40px;
+      left: 10px;
+      width: 210px;
+      background: #fffbeb;
+      border: 2px solid #78350f;
+      border-radius: 10px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+      z-index: 48;
+      display: none;
+      flex-direction: column;
+      padding: 6px;
+      gap: 3px;
+    }
+    .start-menu.open { display: flex; }
+    .start-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      color: #451a03;
+      cursor: pointer;
+    }
+    .start-menu-item:hover {
+      background: #fde68a;
+    }
+    .start-menu-divider {
+      height: 1px;
+      background: #e5c384;
+      margin: 3px 0;
+    }
+
+    /* App-Specific Styles */
+    .app-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e7d3b0;
+    }
+    .btn-sm {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #a16207;
+      background: #fef3c7;
+      color: #451a03;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-sm:hover { background: #fde68a; }
+    .btn-sm.active {
+      background: #d97706;
+      color: #fff;
+      border-color: #92400e;
+    }
+    .btn-danger {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #7f1d1d;
+    }
+    .btn-danger:hover { background: #fecaca; }
+
+    /* Butter Paint */
+    .paint-canvas-wrap {
+      border: 1px solid #c29b61;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fdf6e3;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    .paint-canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 220px;
+    }
+
+    /* Crumb Explorer */
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .file-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-radius: 6px;
+      background: #fef9ec;
+      border: 1px solid #ead8b8;
+      gap: 6px;
+    }
+    .file-name {
+      font-weight: 700;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .file-preview-box {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #d6bfa0;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow: auto;
+    }
+
+    /* Toaster Terminal */
+    .term-wrap {
+      background: #1c130b;
+      color: #fde68a;
+      font-family: var(--mono-font);
+      font-size: 11.5px;
+      border-radius: 8px;
+      padding: 8px;
+      height: 100%;
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+    }
+    .term-output {
+      flex: 1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      margin-bottom: 6px;
+      user-select: text;
+    }
+    .term-input-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-top: 1px solid #452b14;
+      padding-top: 5px;
+    }
+    .term-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fef3c7;
+      font-family: var(--mono-font);
+      font-size: 11.5px;
+    }
+
+    /* Jam Session */
+    .seq-grid {
+      display: grid;
+      grid-template-columns: 74px repeat(8, 1fr);
+      gap: 4px;
+      align-items: center;
+    }
+    .seq-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #451a03;
+    }
+    .jam-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #d6bfa0;
+      background: #fffbeb;
+      cursor: pointer;
+      margin: 0 auto;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .jam-dot.on[data-track="0"] { background: #dc2626; border-color: #991b1b; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2); }
+    .jam-dot.on[data-track="1"] { background: #ea580c; border-color: #9a3412; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2); }
+    .jam-dot.on[data-track="2"] { background: #eab308; border-color: #854d0e; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2); }
+    .jam-dot.on[data-track="3"] { background: #9333ea; border-color: #581c87; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2); }
+    .jam-dot.playhead {
+      outline: 2px solid #2563eb;
+      transform: scale(1.14);
+    }
+
+    /* Breadit */
+    .breadit-post {
+      padding: 8px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #e7d3b0;
+      margin-bottom: 7px;
+    }
+    .breadit-meta {
+      font-size: 10px;
+      color: #78350f;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .breadit-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #291505;
+      margin-bottom: 4px;
+    }
+    .breadit-body {
+      font-size: 11.5px;
+      color: #451a03;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+    .breadit-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .breadit-compose {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .breadit-compose input {
+      flex: 1;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid #c29b61;
+      font-size: 11.5px;
+    }
+
+    /* Settings */
+    .setting-group {
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      background: #fef9ec;
+      border: 1px solid #ead8b8;
+    }
+    .setting-group label {
+      display: block;
+      font-weight: 800;
+      font-size: 11.5px;
+      margin-bottom: 5px;
+    }
+
+    @media (max-width: 720px) {
+      .toaster-chassis {
+        padding: 16px 86px 16px 16px;
+        border-radius: 26px;
+      }
+      .toaster-controls {
+        right: 8px;
+        width: 72px;
+      }
+      .lever-handle { width: 56px; font-size: 8px; }
+      .dial-knob { width: 46px; height: 46px; }
+      .ternary-labels { width: 62px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toaster-chassis mode-bread" id="toasterChassis">
+    <div class="toaster-foot foot-tl"></div>
+    <div class="toaster-foot foot-bl"></div>
+    <div class="toaster-foot foot-tr"></div>
+    <div class="toaster-foot foot-br"></div>
+
+    <div class="toaster-vents">
+      <div class="vent-slot"></div>
+      <div class="vent-slot"></div>
+      <div class="vent-slot"></div>
+    </div>
+
+    <div class="toaster-badge">CONSCIOUSNODE SOFTWORKS • TOASTOS T-01</div>
+
+    <!-- Single Toaster Slot -->
+    <div class="toaster-slot">
+      <div class="slot-coils" id="slotCoils"></div>
+
+      <!-- Slice of Bread = The Screen -->
+      <div class="bread-slice" id="breadSlice">
+        <div class="crumb-screen" id="crumbScreen">
+          <canvas id="breadTextureCanvas"></canvas>
+          <div id="browningOverlay"></div>
+          <div id="frostOverlay"></div>
+          <canvas id="crumbParticleCanvas"></canvas>
+
+          <!-- Unbooted state -->
+          <div class="unbooted-overlay" id="unbootedOverlay">
+            <div class="unbooted-title">🍞 ToastOS</div>
+            <div class="unbooted-sub">A single-slice graphical operating system. Press the toaster lever on the right to boot.</div>
+            <button class="boot-cta-btn" id="bootCtaBtn">Press Lever to Boot</button>
+          </div>
+
+          <!-- Boot sequence -->
+          <div class="boot-screen" id="bootScreen"></div>
+
+          <!-- Burnt Toast Warning -->
+          <div class="burnt-banner" id="burntBanner">
+            🔥 BURNT TOAST! Crumbs dropping — press lever to eject!
+          </div>
+
+          <!-- Desktop -->
+          <div class="desktop-area" id="desktopArea">
+            <div class="desktop-icons" id="desktopIcons"></div>
+          </div>
+
+          <!-- Start Menu -->
+          <div class="start-menu" id="startMenu"></div>
+
+          <!-- Taskbar -->
+          <div class="taskbar" id="taskbar">
+            <div class="taskbar-left">
+              <button class="start-btn" id="startBtn">🍞 Toast</button>
+              <div class="task-tabs" id="taskTabs"></div>
+            </div>
+            <div class="taskbar-right">
+              <span class="status-pill" id="browningClock">0% Pale</span>
+              <span class="status-pill" id="dialBadge">0</span>
+              <button class="mute-btn" id="muteBtn" title="Toggle Audio">🔊</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Physical Toaster Controls -->
+    <div class="toaster-controls">
+      <div class="dial-section">
+        <div class="control-label">Ternary Dial</div>
+        <div class="ternary-labels">
+          <button class="ternary-btn" data-val="T" title="-1 Frozen">T</button>
+          <button class="ternary-btn active" data-val="0" title="0 Bread">0</button>
+          <button class="ternary-btn" data-val="1" title="+1 Toast">1</button>
+        </div>
+        <div class="dial-knob" id="dialKnob" data-setting="0" title="Click to cycle T / 0 / 1"></div>
+        <div class="dial-readout" id="dialReadout">0 Bread</div>
+      </div>
+
+      <div class="status-led" id="statusLed" title="Toaster Power LED"></div>
+
+      <div class="lever-section">
+        <div class="control-label" id="leverLabel">Boot</div>
+        <div class="lever-track">
+          <button class="lever-handle" id="leverHandle">PRESS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ==================== SAFE STORAGE ==================== */
+  const STORAGE_KEY = "toastos_v1_state";
+  function loadStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function saveStorage(data) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      // Storage unavailable or full; continue in-memory gracefully
+    }
+  }
+
+  /* ==================== WEB AUDIO SYNTH ==================== */
+  let audioCtx = null;
+  let muted = false;
+
+  function ensureAudio() {
+    if (muted) return null;
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) audioCtx = new Ctx();
+    }
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function playLeverClick() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(55, now + 0.08);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
+
+  function playDing(pitchMult = 1) {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [1318.5 * pitchMult, 2637 * pitchMult].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(i === 0 ? 0.22 : 0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + (i === 0 ? 0.85 : 0.45));
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.9);
+    });
+  }
+
+  function playEject() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(190, now);
+    osc.frequency.exponentialRampToValueAtTime(620, now + 0.18);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.23);
+    setTimeout(() => playDing(1.12), 110);
+  }
+
+  function playDialClick() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.03);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.04);
+  }
+
+  function playShakeSound() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.35);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 1800;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    noise.connect(filter).connect(gain).connect(ctx.destination);
+    noise.start(now);
+  }
+
+  function playJamNote(track, step, isGolden) {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const scale = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25];
+    if (track === 0) {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(135, now);
+      osc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+      g.gain.setValueAtTime(0.32, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.17);
+    } else if (track === 1) {
+      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.11), ctx.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.18, now);
+      src.connect(g).connect(ctx.destination);
+      src.start(now);
+    } else if (track === 2) {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(6200, now);
+      g.gain.setValueAtTime(0.04, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.055);
+    } else {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = isGolden ? "triangle" : "sawtooth";
+      osc.frequency.setValueAtTime(scale[step % scale.length], now);
+      g.gain.setValueAtTime(isGolden ? 0.14 : 0.1, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.24);
+    }
+  }
+
+  /* ==================== DEFAULT DATA & STATE ==================== */
+  const DEFAULT_FILES = [
+    {
+      id: "f_welcome",
+      name: "welcome.crumb",
+      type: "text",
+      content: "Welcome to ToastOS v1.0!\n\n- Browning is your system clock.\n- Golden toast (35%–75%) boosts Butter Paint & Jam Session.\n- At 90%+, crumbs fall. Press the lever to eject & reboot!\n- Dial T = Frozen (-1), 0 = Bread (0), 1 = Toast (+1)."
+    },
+    {
+      id: "f_manifesto",
+      name: "sourdough_manifesto.toast",
+      type: "text",
+      content: "THE SOURDOUGH MANIFESTO\n\n1. A slice of bread is a valid display surface.\n2. The crust is the only bezel we trust.\n3. Balanced ternary (T, 0, 1) is the purest breakfast logic."
+    },
+    {
+      id: "f_recipe",
+      name: "butter_protocol.txt",
+      type: "text",
+      content: "Optimal Spread Protocol:\nWait for Golden Toast (35%-75% browning) before applying Butter in Butter Paint for maximum silkiness."
+    }
+  ];
+
+  const DEFAULT_POSTS = [
+    {
+      id: "p1",
+      author: "u/GrilledCheese_99",
+      sub: "b/melted",
+      title: "Anyone else running smoother at 52% Golden?",
+      body: "Just booted a fresh sourdough slice. Butter Paint feels twice as creamy right in the golden window.",
+      votes: 42
+    },
+    {
+      id: "p2",
+      author: "u/BLT_Architect",
+      sub: "b/crustops",
+      title: "PSA: Do NOT leave your session unattended on +1 Toast",
+      body: "Left Crumb Explorer open for two minutes on setting 1 and came back to crumbs falling across my taskbar.",
+      votes: 29
+    },
+    {
+      id: "p3",
+      author: "u/PumpernickelPete",
+      sub: "b/rye_and_shine",
+      title: "Switched to Pumpernickel in Settings and never looked back",
+      body: "Dark mode for bread. Easier on the eyes during late-night Toaster Terminal sessions.",
+      votes: 18
+    },
+    {
+      id: "p4",
+      author: "u/ClubSandwichIII",
+      sub: "b/ternary",
+      title: "Why T / 0 / 1 is superior to binary",
+      body: "Frozen, Bread, Toast. Three states of matter for three states of breakfast.",
+      votes: 64
+    }
+  ];
+
+  const saved = loadStorage();
+  const state = {
+    booted: false,
+    booting: false,
+    sliceNumber: (saved && saved.sliceNumber) || 1,
+    browning: 0,
+    dial: (saved && saved.dial) || "0",
+    breadType: (saved && saved.breadType) || "white",
+    crustThickness: (saved && saved.crustThickness) || 14,
+    files: (saved && Array.isArray(saved.files)) ? saved.files : JSON.parse(JSON.stringify(DEFAULT_FILES)),
+    tray: (saved && Array.isArray(saved.tray)) ? saved.tray : [],
+    posts: (saved && Array.isArray(saved.posts)) ? saved.posts : JSON.parse(JSON.stringify(DEFAULT_POSTS)),
+    jamGrid: (saved && saved.jamGrid) || [
+      [1,0,0,0,1,0,0,0],
+      [0,0,1,0,0,0,1,0],
+      [1,1,1,1,1,1,1,1],
+      [1,0,0,1,0,1,0,0]
+    ],
+    jamBpm: (saved && saved.jamBpm) || 120,
+    jamPlaying: false,
+    jamStep: 0,
+    windows: [],
+    topZ: 20
+  };
+
+  function persistState() {
+    saveStorage({
+      sliceNumber: state.sliceNumber,
+      dial: state.dial,
+      breadType: state.breadType,
+      crustThickness: state.crustThickness,
+      files: state.files,
+      tray: state.tray,
+      posts: state.posts,
+      jamGrid: state.jamGrid,
+      jamBpm: state.jamBpm
+    });
+  }
+
+  /* ==================== DOM REFS ==================== */
+  const toasterChassis = document.getElementById("toasterChassis");
+  const slotCoils = document.getElementById("slotCoils");
+  const breadSlice = document.getElementById("breadSlice");
+  const crumbScreen = document.getElementById("crumbScreen");
+  const breadTextureCanvas = document.getElementById("breadTextureCanvas");
+  const browningOverlay = document.getElementById("browningOverlay");
+  const crumbParticleCanvas = document.getElementById("crumbParticleCanvas");
+  const unbootedOverlay = document.getElementById("unbootedOverlay");
+  const bootCtaBtn = document.getElementById("bootCtaBtn");
+  const bootScreen = document.getElementById("bootScreen");
+  const burntBanner = document.getElementById("burntBanner");
+  const desktopArea = document.getElementById("desktopArea");
+  const desktopIcons = document.getElementById("desktopIcons");
+  const startMenu = document.getElementById("startMenu");
+  const startBtn = document.getElementById("startBtn");
+  const taskTabs = document.getElementById("taskTabs");
+  const browningClock = document.getElementById("browningClock");
+  const dialBadge = document.getElementById("dialBadge");
+  const muteBtn = document.getElementById("muteBtn");
+  const dialKnob = document.getElementById("dialKnob");
+  const dialReadout = document.getElementById("dialReadout");
+  const leverHandle = document.getElementById("leverHandle");
+  const leverLabel = document.getElementById("leverLabel");
+  const statusLed = document.getElementById("statusLed");
+
+  /* ==================== BREAD TEXTURE & BROWNING ==================== */
+  const BREAD_PALETTES = {
+    white: { base: "#f8ebd0", pore: "#e3cca1", crust: "#a8692c", crustDark: "#6e4014", seeds: false },
+    rye: { base: "#c8a97e", pore: "#9c7c52", crust: "#6c4827", crustDark: "#3e2712", seeds: true },
+    sourdough: { base: "#f2e1bc", pore: "#cfb382", crust: "#965620", crustDark: "#59300e", seeds: false, blister: true },
+    pumpernickel: { base: "#5c4232", pore: "#3c291d", crust: "#322015", crustDark: "#1c1009", seeds: true }
+  };
+
+  function drawBreadTexture() {
+    const rect = crumbScreen.getBoundingClientRect();
+    const w = Math.max(300, Math.floor(rect.width));
+    const h = Math.max(200, Math.floor(rect.height));
+    breadTextureCanvas.width = w;
+    breadTextureCanvas.height = h;
+    const ctx = breadTextureCanvas.getContext("2d");
+    const pal = BREAD_PALETTES[state.breadType] || BREAD_PALETTES.white;
+
+    document.documentElement.style.setProperty("--crumb-bg", pal.base);
+    document.documentElement.style.setProperty("--crust-color", pal.crust);
+    document.documentElement.style.setProperty("--crust-dark", pal.crustDark);
+    document.documentElement.style.setProperty("--crust-width", state.crustThickness + "px");
+
+    ctx.fillStyle = pal.base;
+    ctx.fillRect(0, 0, w, h);
+
+    let seed = 1337 + state.breadType.length * 91;
+    const rand = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+
+    const poreCount = state.breadType === "sourdough" ? 260 : 420;
+    for (let i = 0; i < poreCount; i++) {
+      const x = rand() * w;
+      const y = rand() * h;
+      const rx = (state.breadType === "sourdough" ? 3 + rand() * 8 : 1.5 + rand() * 4);
+      const ry = rx * (0.6 + rand() * 0.6);
+      ctx.fillStyle = pal.pore;
+      ctx.globalAlpha = 0.25 + rand() * 0.28;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, rand() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (pal.seeds) {
+      for (let i = 0; i < 65; i++) {
+        const x = rand() * w;
+        const y = rand() * h;
+        ctx.fillStyle = "#2b1c10";
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 2.5, 1.1, rand() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function getBrowningStage(b) {
+    if (b < 20) return "Pale";
+    if (b < 35) return "Light";
+    if (b < 75) return "Golden";
+    if (b < 90) return "Dark";
+    return "Burnt";
+  }
+
+  function isGoldenToast() {
+    return state.browning >= 35 && state.browning < 75;
+  }
+
+  function updateBrowningVisuals() {
+    const b = Math.min(100, state.browning);
+    const stage = getBrowningStage(b);
+    const pct = Math.floor(b);
+
+    if (b < 35) {
+      const a = (b / 35) * 0.16;
+      browningOverlay.style.background = `rgba(217, 138, 43, ${a.toFixed(3)})`;
+    } else if (b < 75) {
+      const t = (b - 35) / 40;
+      browningOverlay.style.background = `rgba(180, 96, 22, ${(0.16 + t * 0.22).toFixed(3)})`;
+    } else {
+      const t = (b - 75) / 25;
+      browningOverlay.style.background = `rgba(48, 24, 8, ${(0.38 + t * 0.42).toFixed(3)})`;
+    }
+
+    const icon = state.dial === "T" ? "❄️" : (b >= 90 ? "🔥" : (isGoldenToast() ? "✨" : "🍞"));
+    browningClock.textContent = `${icon} ${pct}% ${stage}`;
+    burntBanner.classList.toggle("visible", state.booted && b >= 90);
+  }
+
+  /* ==================== CRUMB PARTICLES (BURNT STATE) ==================== */
+  const particles = [];
+  function tickCrumbs() {
+    const rect = crumbScreen.getBoundingClientRect();
+    if (crumbParticleCanvas.width !== Math.floor(rect.width) || crumbParticleCanvas.height !== Math.floor(rect.height)) {
+      crumbParticleCanvas.width = Math.max(300, Math.floor(rect.width));
+      crumbParticleCanvas.height = Math.max(200, Math.floor(rect.height));
+    }
+    const ctx = crumbParticleCanvas.getContext("2d");
+    ctx.clearRect(0, 0, crumbParticleCanvas.width, crumbParticleCanvas.height);
+
+    if (state.booted && state.browning >= 90) {
+      if (particles.length < 48 && Math.random() < 0.45) {
+        particles.push({
+          x: Math.random() * crumbParticleCanvas.width,
+          y: -6,
+          vy: 0.9 + Math.random() * 1.8,
+          vx: (Math.random() - 0.5) * 0.6,
+          size: 2 + Math.random() * 3.5,
+          color: Math.random() < 0.5 ? "#2d1a0b" : "#5c3413"
+        });
+      }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+      if (p.y > crumbParticleCanvas.height + 10) {
+        particles.splice(i, 1);
+      }
+    }
+
+    requestAnimationFrame(tickCrumbs);
+  }
+
+  /* ==================== DIAL (T / 0 / 1) ==================== */
+  function setDial(val, silent = false) {
+    state.dial = val;
+    if (!silent) playDialClick();
+
+    dialKnob.dataset.setting = val;
+    document.querySelectorAll(".ternary-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.val === val);
+    });
+
+    toasterChassis.classList.remove("mode-frozen", "mode-bread", "mode-toast");
+    statusLed.classList.remove("on", "frozen");
+
+    if (val === "T") {
+      toasterChassis.classList.add("mode-frozen");
+      dialReadout.textContent = "T Frozen (-1)";
+      dialBadge.textContent = "T (-1)";
+      if (state.booted) statusLed.classList.add("frozen");
+    } else if (val === "0") {
+      toasterChassis.classList.add("mode-bread");
+      dialReadout.textContent = "0 Bread (0)";
+      dialBadge.textContent = "0";
+      if (state.booted) statusLed.classList.add("on");
+    } else {
+      toasterChassis.classList.add("mode-toast");
+      dialReadout.textContent = "1 Toast (+1)";
+      dialBadge.textContent = "1 (+1)";
+      if (state.booted) statusLed.classList.add("on");
+    }
+
+    const settingsSel = document.getElementById("settingsDialSelect");
+    if (settingsSel) settingsSel.value = val;
+
+    persistState();
+  }
+
+  dialKnob.addEventListener("click", () => {
+    const order = ["T", "0", "1"];
+    const next = order[(order.indexOf(state.dial) + 1) % 3];
+    setDial(next);
+  });
+
+  document.querySelectorAll(".ternary-btn").forEach(btn => {
+    btn.addEventListener("click", () => setDial(btn.dataset.val));
+  });
+
+  /* ==================== BOOT & EJECT (LEVER) ==================== */
+  const BOOT_MESSAGES = [
+    "ToastBIOS v0.37 (Balanced Ternary) — ConsciousNode SoftWorks",
+    "Checking crust bezel integrity... OK",
+    "Mounting /dev/crumb... OK",
+    "Calibrating butter... OK",
+    "Probing Jam Session step sequencer... OK",
+    "Indexing Crumb Explorer & Crumb Tray... OK",
+    "Connecting to local Breadit feed... OK",
+    "Starting CrumbWM... READY!"
+  ];
+
+  function bootToast() {
+    if (state.booting || state.booted) return;
+    state.booting = true;
+    playLeverClick();
+    leverHandle.classList.add("down");
+    slotCoils.classList.add("active");
+    unbootedOverlay.classList.add("hidden");
+    bootScreen.classList.add("active");
+    bootScreen.innerHTML = "";
+
+    setTimeout(() => {
+      leverHandle.classList.remove("down");
+      breadSlice.classList.add("booted");
+      playDing(state.dial === "T" ? 0.85 : 1);
+
+      let idx = 0;
+      const stepDelay = state.dial === "T" ? 260 : (state.dial === "1" ? 90 : 150);
+      const timer = setInterval(() => {
+        if (idx < BOOT_MESSAGES.length) {
+          const div = document.createElement("div");
+          div.className = "boot-line";
+          const msg = BOOT_MESSAGES[idx];
+          div.innerHTML = msg.replace("OK", '<span class="boot-ok">OK</span>').replace("READY!", '<span class="boot-ok">READY!</span>');
+          bootScreen.appendChild(div);
+          idx++;
+        } else {
+          clearInterval(timer);
+          setTimeout(() => {
+            bootScreen.classList.remove("active");
+            state.booted = true;
+            state.booting = false;
+            leverLabel.textContent = "Eject";
+            leverHandle.textContent = "EJECT";
+            setDial(state.dial, true);
+            drawBreadTexture();
+            updateBrowningVisuals();
+          }, 260);
+        }
+      }, stepDelay);
+    }, 320);
+  }
+
+  function ejectAndReboot() {
+    if (state.booting || !state.booted) return;
+    state.booting = true;
+    state.jamPlaying = false;
+    playEject();
+    leverHandle.classList.add("down");
+    breadSlice.classList.add("ejecting");
+    breadSlice.classList.remove("booted");
+
+    state.windows = [];
+    renderWindows();
+    renderTaskbar();
+
+    setTimeout(() => {
+      state.browning = 0;
+      state.sliceNumber += 1;
+      particles.length = 0;
+      persistState();
+      breadSlice.classList.remove("ejecting");
+      leverHandle.classList.remove("down");
+      state.booted = false;
+      state.booting = false;
+      updateBrowningVisuals();
+      bootToast();
+    }, 520);
+  }
+
+  leverHandle.addEventListener("click", () => {
+    if (!state.booted) bootToast();
+    else ejectAndReboot();
+  });
+  bootCtaBtn.addEventListener("click", bootToast);
+
+  /* ==================== BROWNING CLOCK LOOP ==================== */
+  setInterval(() => {
+    if (!state.booted) return;
+    let delta = 0;
+    if (state.dial === "T") delta = 0.08;
+    else if (state.dial === "0") delta = 0.35;
+    else if (state.dial === "1") delta = 0.85;
+    state.browning = Math.min(100, state.browning + delta);
+    updateBrowningVisuals();
+  }, 500);
+
+  /* ==================== APP DEFINITIONS & ICONS ==================== */
+  const APPS = [
+    {
+      id: "paint",
+      title: "Butter Paint",
+      w: 390,
+      h: 340,
+      svg: `<svg viewBox="0 0 32 32"><rect x="4" y="14" width="24" height="12" rx="3" fill="#fde047" stroke="#92400e" stroke-width="2"/><path d="M9 14c0-5 6-9 10-7s2 7 2 7" fill="#f59e0b" stroke="#92400e" stroke-width="1.5"/></svg>`
+    },
+    {
+      id: "explorer",
+      title: "Crumb Explorer",
+      w: 380,
+      h: 320,
+      svg: `<svg viewBox="0 0 32 32"><path d="M4 8h10l3 3h11v14H4z" fill="#fbbf24" stroke="#78350f" stroke-width="2"/><circle cx="14" cy="18" r="2" fill="#78350f"/><circle cx="20" cy="20" r="1.5" fill="#78350f"/></svg>`
+    },
+    {
+      id: "terminal",
+      title: "Toaster Terminal",
+      w: 410,
+      h: 310,
+      svg: `<svg viewBox="0 0 32 32"><rect x="3" y="5" width="26" height="22" rx="4" fill="#291a0d" stroke="#92400e" stroke-width="2"/><path d="M8 12l5 4-5 4M15 20h7" stroke="#fcd34d" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>`
+    },
+    {
+      id: "jam",
+      title: "Jam Session",
+      w: 400,
+      h: 295,
+      svg: `<svg viewBox="0 0 32 32"><rect x="6" y="7" width="20" height="20" rx="4" fill="#fef3c7" stroke="#78350f" stroke-width="2"/><circle cx="12" cy="13" r="3" fill="#dc2626"/><circle cx="20" cy="13" r="3" fill="#ea580c"/><circle cx="12" cy="21" r="3" fill="#9333ea"/><circle cx="20" cy="21" r="3" fill="#eab308"/></svg>`
+    },
+    {
+      id: "breadit",
+      title: "Breadit",
+      w: 390,
+      h: 335,
+      svg: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#ea580c" stroke="#7c2d12" stroke-width="2"/><rect x="10" y="11" width="12" height="10" rx="3" fill="#fffbeb"/><circle cx="13" cy="15" r="1.4" fill="#7c2d12"/><circle cx="19" cy="15" r="1.4" fill="#7c2d12"/></svg>`
+    },
+    {
+      id: "settings",
+      title: "Settings",
+      w: 340,
+      h: 310,
+      svg: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="10" fill="#cbd5e1" stroke="#334155" stroke-width="2"/><circle cx="16" cy="16" r="4" fill="#475569"/></svg>`
+    }
+  ];
+
+  function renderDesktopIconsAndMenu() {
+    desktopIcons.innerHTML = "";
+    startMenu.innerHTML = "";
+
+    APPS.forEach(app => {
+      const icon = document.createElement("div");
+      icon.className = "desk-icon";
+      icon.innerHTML = `${app.svg}<span>${app.title}</span>`;
+      icon.addEventListener("click", () => openApp(app.id));
+      desktopIcons.appendChild(icon);
+
+      const mItem = document.createElement("button");
+      mItem.className = "start-menu-item";
+      mItem.innerHTML = `<span style="width:18px;height:18px;display:inline-flex">${app.svg}</span><span>${app.title}</span>`;
+      mItem.addEventListener("click", () => {
+        startMenu.classList.remove("open");
+        openApp(app.id);
+      });
+      startMenu.appendChild(mItem);
+    });
+
+    const div = document.createElement("div");
+    div.className = "start-menu-divider";
+    startMenu.appendChild(div);
+
+    const shakeItem = document.createElement("button");
+    shakeItem.className = "start-menu-item";
+    shakeItem.textContent = "🧹 Shake Crumb Tray";
+    shakeItem.addEventListener("click", () => {
+      startMenu.classList.remove("open");
+      shakeCrumbTray();
+    });
+    startMenu.appendChild(shakeItem);
+
+    const ejectItem = document.createElement("button");
+    ejectItem.className = "start-menu-item";
+    ejectItem.textContent = "⏏️ Eject & Reboot";
+    ejectItem.addEventListener("click", () => {
+      startMenu.classList.remove("open");
+      ejectAndReboot();
+    });
+    startMenu.appendChild(ejectItem);
+  }
+
+  startBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    startMenu.classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    if (!startMenu.contains(e.target) && e.target !== startBtn) {
+      startMenu.classList.remove("open");
+    }
+  });
+
+  /* ==================== WINDOW MANAGER ==================== */
+  function openApp(appId, extra = null) {
+    if (!state.booted) return;
+    const existing = state.windows.find(w => w.appId === appId);
+    if (existing) {
+      existing.minimized = false;
+      focusWindow(existing.id);
+      if (appId === "paint" && extra && extra.dataUrl) {
+        loadPaintImage(extra.dataUrl);
+      }
+      return;
+    }
+
+    const def = APPS.find(a => a.id === appId);
+    if (!def) return;
+
+    const areaRect = desktopArea.getBoundingClientRect();
+    const w = Math.min(def.w, Math.max(260, areaRect.width - 28));
+    const h = Math.min(def.h, Math.max(200, areaRect.height - 20));
+    const offset = (state.windows.length % 5) * 22;
+    const x = Math.min(Math.max(96 + offset, 12), Math.max(12, areaRect.width - w - 10));
+    const y = Math.min(Math.max(14 + offset, 8), Math.max(8, areaRect.height - h - 8));
+
+    const winObj = {
+      id: "win_" + appId + "_" + Date.now(),
+      appId,
+      title: def.title,
+      x,
+      y,
+      w,
+      h,
+      z: ++state.topZ,
+      minimized: false
+    };
+    state.windows.push(winObj);
+    createWindowDOM(winObj, extra);
+    renderTaskbar();
+  }
+
+  function focusWindow(winId) {
+    const winObj = state.windows.find(w => w.id === winId);
+    if (!winObj) return;
+    winObj.z = ++state.topZ;
+    document.querySelectorAll(".os-window").forEach(el => {
+      el.classList.toggle("focused", el.dataset.winId === winId);
+      if (el.dataset.winId === winId) {
+        el.style.zIndex = winObj.z;
+        el.style.display = winObj.minimized ? "none" : "flex";
+      }
+    });
+    renderTaskbar();
+  }
+
+  function closeWindow(winId) {
+    const idx = state.windows.findIndex(w => w.id === winId);
+    if (idx === -1) return;
+    const winObj = state.windows[idx];
+    if (winObj.appId === "jam") state.jamPlaying = false;
+    state.windows.splice(idx, 1);
+    const el = document.querySelector(`.os-window[data-win-id="${winId}"]`);
+    if (el) el.remove();
+    renderTaskbar();
+  }
+
+  function renderWindows() {
+    document.querySelectorAll(".os-window").forEach(el => el.remove());
+  }
+
+  function renderTaskbar() {
+    taskTabs.innerHTML = "";
+    state.windows.forEach(w => {
+      const btn = document.createElement("button");
+      btn.className = "task-tab" + (!w.minimized && w.z === state.topZ ? " active" : "");
+      btn.textContent = w.title;
+      btn.addEventListener("click", () => {
+        w.minimized = !w.minimized && w.z === state.topZ ? true : false;
+        const el = document.querySelector(`.os-window[data-win-id="${w.id}"]`);
+        if (el) el.style.display = w.minimized ? "none" : "flex";
+        if (!w.minimized) focusWindow(w.id);
+        else renderTaskbar();
+      });
+      taskTabs.appendChild(btn);
+    });
+  }
+
+  function createWindowDOM(winObj, extra) {
+    const el = document.createElement("div");
+    el.className = "os-window focused";
+    el.dataset.winId = winObj.id;
+    el.style.left = winObj.x + "px";
+    el.style.top = winObj.y + "px";
+    el.style.width = winObj.w + "px";
+    el.style.height = winObj.h + "px";
+    el.style.zIndex = winObj.z;
+
+    el.innerHTML = `
+      <svg class="window-ice" viewBox="0 0 44 44">
+        <path d="M44 0 L12 0 L28 12 L20 20 L34 26 L44 36 Z" fill="rgba(224,242,254,0.75)" stroke="#7dd3fc" stroke-width="1"/>
+      </svg>
+      <div class="win-titlebar">
+        <div class="win-title">${winObj.title}</div>
+        <div class="win-controls">
+          <button class="win-btn win-btn-min" title="Minimize">_</button>
+          <button class="win-btn win-btn-close" title="Close">×</button>
+        </div>
+      </div>
+      <div class="win-body"></div>
+    `;
+
+    el.addEventListener("pointerdown", () => focusWindow(winObj.id));
+
+    const titlebar = el.querySelector(".win-titlebar");
+    const minBtn = el.querySelector(".win-btn-min");
+    const closeBtn = el.querySelector(".win-btn-close");
+    const body = el.querySelector(".win-body");
+
+    minBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      winObj.minimized = true;
+      el.style.display = "none";
+      renderTaskbar();
+    });
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeWindow(winObj.id);
+    });
+
+    let dragging = false;
+    let startX = 0, startY = 0, origX = 0, origY = 0;
+
+    titlebar.addEventListener("pointerdown", (e) => {
+      if (e.target.closest(".win-controls")) return;
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      origX = winObj.x;
+      origY = winObj.y;
+      titlebar.setPointerCapture(e.pointerId);
+    });
+
+    titlebar.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const factor = state.dial === "T" ? 0.55 : 1;
+      const dx = (e.clientX - startX) * factor;
+      const dy = (e.clientY - startY) * factor;
+      const area = desktopArea.getBoundingClientRect();
+      winObj.x = Math.max(0, Math.min(area.width - winObj.w, origX + dx));
+      winObj.y = Math.max(0, Math.min(area.height - 32, origY + dy));
+      el.style.left = winObj.x + "px";
+      el.style.top = winObj.y + "px";
+    });
+
+    titlebar.addEventListener("pointerup", () => { dragging = false; });
+    titlebar.addEventListener("pointercancel", () => { dragging = false; });
+
+    desktopArea.appendChild(el);
+    focusWindow(winObj.id);
+
+    if (winObj.appId === "paint") mountButterPaint(body, extra);
+    else if (winObj.appId === "explorer") mountCrumbExplorer(body);
+    else if (winObj.appId === "terminal") mountToasterTerminal(body);
+    else if (winObj.appId === "jam") mountJamSession(body);
+    else if (winObj.appId === "breadit") mountBreadit(body);
+    else if (winObj.appId === "settings") mountSettings(body);
+  }
+
+  /* ==================== APP 1: BUTTER PAINT ==================== */
+  let activePaintCanvas = null;
+  function loadPaintImage(dataUrl) {
+    if (!activePaintCanvas) return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = activePaintCanvas.getContext("2d");
+      ctx.clearRect(0, 0, activePaintCanvas.width, activePaintCanvas.height);
+      ctx.drawImage(img, 0, 0, activePaintCanvas.width, activePaintCanvas.height);
+    };
+    img.src = dataUrl;
+  }
+
+  function mountButterPaint(body, extra) {
+    const spreads = {
+      butter: { label: "Butter", color: "rgba(253, 224, 71, 0.85)", speck: null },
+      jam: { label: "Strawberry Jam", color: "rgba(220, 38, 38, 0.82)", speck: "#7f1d1d" },
+      marmalade: { label: "Marmalade", color: "rgba(249, 115, 22, 0.82)", speck: "#9a3412" },
+      yeast: { label: "Yeast Spread", color: "rgba(58, 31, 14, 0.9)", speck: "#1f1007" }
+    };
+    let currentSpread = "butter";
+    let brushSize = 14;
+
+    body.innerHTML = `
+      <div class="app-toolbar">
+        <button class="btn-sm active" data-sp="butter">🧈 Butter</button>
+        <button class="btn-sm" data-sp="jam">🍓 Jam</button>
+        <button class="btn-sm" data-sp="marmalade">🍊 Marmalade</button>
+        <button class="btn-sm" data-sp="yeast">🫙 Yeast Spread</button>
+        <input type="range" id="paintSize" min="6" max="30" value="14" title="Spread knife width" style="width:62px" />
+        <button class="btn-sm" id="paintSaveBtn">💾 Save</button>
+        <button class="btn-sm" id="paintClearBtn">Clear</button>
+      </div>
+      <div class="paint-canvas-wrap"><canvas id="butterCanvas" width="350" height="220"></canvas></div>
+      <div id="paintStatus" style="font-size:10.5px;margin-top:5px;color:#78350f;font-weight:700;"></div>
+    `;
+
+    const canvas = body.querySelector("#butterCanvas");
+    activePaintCanvas = canvas;
+    const ctx = canvas.getContext("2d");
+    const statusEl = body.querySelector("#paintStatus");
+
+    statusEl.textContent = isGoldenToast()
+      ? "✨ Golden Toast Active: Butter smears extra smooth!"
+      : "Drag to smear spreads across the crumb.";
+
+    body.querySelectorAll("[data-sp]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentSpread = btn.dataset.sp;
+        body.querySelectorAll("[data-sp]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    body.querySelector("#paintSize").addEventListener("input", (e) => {
+      brushSize = Number(e.target.value);
+    });
+
+    body.querySelector("#paintClearBtn").addEventListener("click", () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    body.querySelector("#paintSaveBtn").addEventListener("click", () => {
+      const name = `painting_${Date.now().toString().slice(-4)}.crumb`;
+      state.files.push({
+        id: "f_" + Date.now(),
+        name,
+        type: "image",
+        content: canvas.toDataURL("image/png")
+      });
+      persistState();
+      statusEl.textContent = `Saved as ${name} in Crumb Explorer!`;
+      refreshExplorerIfOpen();
+    });
+
+    if (extra && extra.dataUrl) {
+      loadPaintImage(extra.dataUrl);
+    }
+
+    let drawing = false;
+    let lastPos = null;
+
+    function getPos(e) {
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: ((e.clientX - r.left) / r.width) * canvas.width,
+        y: ((e.clientY - r.top) / r.height) * canvas.height
+      };
+    }
+
+    function smear(from, to) {
+      const sp = spreads[currentSpread];
+      const goldenBoost = (currentSpread === "butter" && isGoldenToast()) ? 1.35 : 1;
+      const w = brushSize * goldenBoost;
+
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = sp.color;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+
+      if (sp.speck) {
+        for (let i = 0; i < 3; i++) {
+          ctx.fillStyle = sp.speck;
+          ctx.fillRect(to.x + (Math.random() - 0.5) * w, to.y + (Math.random() - 0.5) * w, 2, 2);
+        }
+      }
+      ctx.restore();
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      drawing = true;
+      lastPos = getPos(e);
+      smear(lastPos, lastPos);
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!drawing) return;
+      const pos = getPos(e);
+      smear(lastPos, pos);
+      lastPos = pos;
+    });
+    canvas.addEventListener("pointerup", () => { drawing = false; });
+    canvas.addEventListener("pointercancel", () => { drawing = false; });
+  }
+
+  /* ==================== APP 2: CRUMB EXPLORER ==================== */
+  let refreshExplorerCallback = null;
+  function refreshExplorerIfOpen() {
+    if (refreshExplorerCallback) refreshExplorerCallback();
+  }
+
+  function shakeCrumbTray() {
+    playShakeSound();
+    toasterChassis.classList.add("shaking");
+    setTimeout(() => toasterChassis.classList.remove("shaking"), 480);
+    state.tray = [];
+    persistState();
+    refreshExplorerIfOpen();
+  }
+
+  function mountCrumbExplorer(body) {
+    let viewMode = "files";
+    let previewText = "Select a crumb to inspect.";
+
+    function render() {
+      const list = viewMode === "files" ? state.files : state.tray;
+      body.innerHTML = `
+        <div class="app-toolbar">
+          <button class="btn-sm ${viewMode === "files" ? "active" : ""}" id="tabFiles">🍞 Crumbs (${state.files.length})</button>
+          <button class="btn-sm ${viewMode === "tray" ? "active" : ""}" id="tabTray">🗑️ Crumb Tray (${state.tray.length})</button>
+          ${viewMode === "files"
+            ? `<button class="btn-sm" id="newCrumbBtn">+ New Crumb</button>`
+            : `<button class="btn-sm btn-danger" id="shakeTrayBtn">🫨 Shake Tray</button>`}
+        </div>
+        <div class="file-list" id="explorerList"></div>
+        <div class="file-preview-box" id="explorerPreview">${previewText}</div>
+      `;
+
+      body.querySelector("#tabFiles").addEventListener("click", () => { viewMode = "files"; render(); });
+      body.querySelector("#tabTray").addEventListener("click", () => { viewMode = "tray"; render(); });
+
+      const newBtn = body.querySelector("#newCrumbBtn");
+      if (newBtn) {
+        newBtn.addEventListener("click", () => {
+          const n = `note_${Date.now().toString().slice(-4)}.crumb`;
+          state.files.push({
+            id: "f_" + Date.now(),
+            name: n,
+            type: "text",
+            content: `Created on slice #${state.sliceNumber} at ${Math.floor(state.browning)}% browning.`
+          });
+          persistState();
+          render();
+        });
+      }
+
+      const shakeBtn = body.querySelector("#shakeTrayBtn");
+      if (shakeBtn) {
+        shakeBtn.addEventListener("click", () => {
+          previewText = "Shook the Crumb Tray clean!";
+          shakeCrumbTray();
+        });
+      }
+
+      const listEl = body.querySelector("#explorerList");
+      if (list.length === 0) {
+        listEl.innerHTML = `<div style="color:#78350f;font-style:italic;padding:6px;">${viewMode === "files" ? "No crumbs on disk." : "Crumb Tray is spotless."}</div>`;
+      } else {
+        list.forEach(f => {
+          const row = document.createElement("div");
+          row.className = "file-row";
+          row.innerHTML = `
+            <span class="file-name">${f.type === "image" ? "🎨" : "📄"} ${f.name}</span>
+            <div style="display:flex;gap:4px;">
+              ${viewMode === "files"
+                ? `<button class="btn-sm open-f">Open</button><button class="btn-sm btn-danger del-f">Delete</button>`
+                : `<button class="btn-sm rest-f">Restore</button>`}
+            </div>
+          `;
+          if (viewMode === "files") {
+            row.querySelector(".open-f").addEventListener("click", () => {
+              if (f.type === "image") {
+                openApp("paint", { dataUrl: f.content });
+              } else {
+                previewText = f.content;
+                body.querySelector("#explorerPreview").textContent = previewText;
+              }
+            });
+            row.querySelector(".del-f").addEventListener("click", () => {
+              state.files = state.files.filter(x => x.id !== f.id);
+              state.tray.push(f);
+              persistState();
+              render();
+            });
+          } else {
+            row.querySelector(".rest-f").addEventListener("click", () => {
+              state.tray = state.tray.filter(x => x.id !== f.id);
+              state.files.push(f);
+              persistState();
+              render();
+            });
+          }
+          listEl.appendChild(row);
+        });
+      }
+    }
+
+    refreshExplorerCallback = render;
+    render();
+  }
+
+  /* ==================== APP 3: TOASTER TERMINAL ==================== */
+  function mountToasterTerminal(body) {
+    body.innerHTML = `
+      <div class="term-wrap">
+        <div class="term-output" id="termOut">ToastOS CrumbShell v1.0. Type 'help' for commands.\n</div>
+        <div class="term-input-row">
+          <span style="color:#f59e0b;font-weight:700;">toast@slice:~$</span>
+          <input class="term-input" id="termIn" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+    `;
+    const out = body.querySelector("#termOut");
+    const input = body.querySelector("#termIn");
+    const history = [];
+    let histIdx = 0;
+
+    function println(txt) {
+      out.textContent += txt + "\n";
+      out.scrollTop = out.scrollHeight;
+    }
+
+    function runCmd(raw) {
+      const cmdLine = raw.trim();
+      if (!cmdLine) return;
+      history.push(cmdLine);
+      histIdx = history.length;
+      println(`toast@slice:~$ ${cmdLine}`);
+
+      const parts = cmdLine.split(/\s+/);
+      const cmd = parts[0].toLowerCase();
+      const args = parts.slice(1);
+
+      switch (cmd) {
+        case "help":
+          println("Commands: help, ls, cat, touch, echo, rm, shake, brown, dial, butter, eject, whoami, uname, clear");
+          break;
+        case "ls":
+          if (args[0] === "tray") {
+            println(state.tray.length ? state.tray.map(f => f.name).join("  ") : "(Crumb Tray empty)");
+          } else {
+            println(state.files.length ? state.files.map(f => f.name).join("  ") : "(empty)");
+          }
+          break;
+        case "cat": {
+          const f = state.files.find(x => x.name === args[0]);
+          if (!f) println(`cat: ${args[0] || ""}: No such crumb`);
+          else if (f.type === "image") println(`[Binary butter-paint image: ${f.name}]`);
+          else println(f.content);
+          break;
+        }
+        case "touch": {
+          if (!args[0]) { println("usage: touch <filename>"); break; }
+          if (!state.files.some(x => x.name === args[0])) {
+            state.files.push({ id: "f_" + Date.now(), name: args[0], type: "text", content: "" });
+            persistState();
+            refreshExplorerIfOpen();
+          }
+          println(`Created ${args[0]}`);
+          break;
+        }
+        case "echo": {
+          const full = args.join(" ");
+          const gtIdx = full.indexOf(">");
+          if (gtIdx !== -1) {
+            const text = full.slice(0, gtIdx).trim();
+            const fname = full.slice(gtIdx + 1).trim();
+            if (!fname) { println("echo: missing filename"); break; }
+            let f = state.files.find(x => x.name === fname);
+            if (!f) {
+              f = { id: "f_" + Date.now(), name: fname, type: "text", content: text };
+              state.files.push(f);
+            } else {
+              f.content = text;
+            }
+            persistState();
+            refreshExplorerIfOpen();
+            println(`Wrote to ${fname}`);
+          } else {
+            println(full);
+          }
+          break;
+        }
+        case "rm": {
+          const f = state.files.find(x => x.name === args[0]);
+          if (!f) println(`rm: ${args[0] || ""}: No such crumb`);
+          else {
+            state.files = state.files.filter(x => x.id !== f.id);
+            state.tray.push(f);
+            persistState();
+            refreshExplorerIfOpen();
+            println(`Moved ${f.name} to Crumb Tray`);
+          }
+          break;
+        }
+        case "shake":
+          shakeCrumbTray();
+          println("Shook Crumb Tray clean.");
+          break;
+        case "brown":
+          println(`Browning: ${Math.floor(state.browning)}% (${getBrowningStage(state.browning)})${isGoldenToast() ? " [GOLDEN OPTIMAL]" : ""}`);
+          break;
+        case "dial":
+          if (["T", "0", "1"].includes((args[0] || "").toUpperCase())) {
+            setDial(args[0].toUpperCase());
+            println(`Ternary dial set to ${state.dial}`);
+          } else {
+            println(`Current dial: ${state.dial} (usage: dial T | 0 | 1)`);
+          }
+          break;
+        case "butter":
+          println("  +----------+\n  |  BUTTER  |  Applied pat of butter.\n  +----------+");
+          break;
+        case "eject":
+          println("Ejecting slice...");
+          setTimeout(ejectAndReboot, 200);
+          break;
+        case "whoami":
+          println(`toast (slice #${state.sliceNumber}, ${state.breadType})`);
+          break;
+        case "uname":
+          println("ToastOS 1.0 CrumbKernel (Balanced-Ternary T/0/1)");
+          break;
+        case "clear":
+          out.textContent = "";
+          break;
+        default:
+          println(`${cmd}: crumb not found. Type 'help'.`);
+      }
+    }
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        runCmd(input.value);
+        input.value = "";
+      } else if (e.key === "ArrowUp") {
+        if (histIdx > 0) { histIdx--; input.value = history[histIdx]; }
+        e.preventDefault();
+      } else if (e.key === "ArrowDown") {
+        if (histIdx < history.length - 1) { histIdx++; input.value = history[histIdx]; }
+        else { histIdx = history.length; input.value = ""; }
+        e.preventDefault();
+      }
+    });
+    setTimeout(() => input.focus(), 40);
+  }
+
+  /* ==================== APP 4: JAM SESSION ==================== */
+  let jamTimer = null;
+  const JAM_PRESETS = [
+    [[1,0,0,0,1,0,0,0],[0,0,1,0,0,0,1,0],[1,1,1,1,1,1,1,1],[1,0,0,1,0,1,0,0]],
+    [[1,0,1,0,0,1,0,0],[0,0,0,0,1,0,0,1],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,1,0]],
+    [[1,1,0,0,1,0,1,0],[0,0,1,0,0,1,0,1],[0,1,0,1,0,1,0,1],[1,0,1,0,1,1,0,1]]
+  ];
+  let presetIdx = 0;
+
+  function mountJamSession(body) {
+    const trackNames = ["Crust Kick", "Crumb Snare", "Butter Hat", "Jam Synth"];
+
+    function render() {
+      body.innerHTML = `
+        <div class="app-toolbar">
+          <button class="btn-sm active" id="jamPlayBtn">${state.jamPlaying ? "⏹ Stop" : "▶ Play"}</button>
+          <label style="font-size:11px;font-weight:700;">BPM <input type="range" id="jamBpm" min="80" max="170" value="${state.jamBpm}" style="width:68px;vertical-align:middle;" /> <span id="jamBpmVal">${state.jamBpm}</span></label>
+          <button class="btn-sm" id="jamPresetBtn">Preset</button>
+          <button class="btn-sm" id="jamClearBtn">Clear</button>
+        </div>
+        <div class="seq-grid" id="seqGrid"></div>
+        <div id="jamGoldenInfo" style="margin-top:8px;font-size:11px;font-weight:700;color:#78350f;"></div>
+      `;
+
+      const grid = body.querySelector("#seqGrid");
+      for (let t = 0; t < 4; t++) {
+        const lbl = document.createElement("div");
+        lbl.className = "seq-label";
+        lbl.textContent = trackNames[t];
+        grid.appendChild(lbl);
+        for (let s = 0; s < 8; s++) {
+          const dot = document.createElement("button");
+          dot.className = "jam-dot" + (state.jamGrid[t][s] ? " on" : "") + (state.jamPlaying && state.jamStep === s ? " playhead" : "");
+          dot.dataset.track = t;
+          dot.dataset.step = s;
+          dot.addEventListener("click", () => {
+            state.jamGrid[t][s] = state.jamGrid[t][s] ? 0 : 1;
+            dot.classList.toggle("on", !!state.jamGrid[t][s]);
+            if (state.jamGrid[t][s]) playJamNote(t, s, isGoldenToast());
+            persistState();
+          });
+          grid.appendChild(dot);
+        }
+      }
+
+      body.querySelector("#jamGoldenInfo").textContent = isGoldenToast()
+        ? "✨ Golden Groove Active: Warm triangle synth harmonics!"
+        : "Tempo scales with Ternary Dial (T=slow, 0=normal, 1=fast).";
+
+      body.querySelector("#jamPlayBtn").addEventListener("click", () => {
+        state.jamPlaying = !state.jamPlaying;
+        if (state.jamPlaying) {
+          ensureAudio();
+          scheduleJamTick();
+        } else {
+          clearTimeout(jamTimer);
+        }
+        render();
+      });
+
+      body.querySelector("#jamBpm").addEventListener("input", (e) => {
+        state.jamBpm = Number(e.target.value);
+        body.querySelector("#jamBpmVal").textContent = state.jamBpm;
+        persistState();
+      });
+
+      body.querySelector("#jamPresetBtn").addEventListener("click", () => {
+        presetIdx = (presetIdx + 1) % JAM_PRESETS.length;
+        state.jamGrid = JSON.parse(JSON.stringify(JAM_PRESETS[presetIdx]));
+        persistState();
+        render();
+      });
+
+      body.querySelector("#jamClearBtn").addEventListener("click", () => {
+        state.jamGrid = Array.from({ length: 4 }, () => Array(8).fill(0));
+        persistState();
+        render();
+      });
+    }
+
+    function scheduleJamTick() {
+      clearTimeout(jamTimer);
+      if (!state.jamPlaying || !state.booted) return;
+      const mult = state.dial === "T" ? 1.5 : (state.dial === "1" ? 0.72 : 1);
+      const ms = (60000 / state.jamBpm / 2) * mult;
+
+      for (let t = 0; t < 4; t++) {
+        if (state.jamGrid[t][state.jamStep]) {
+          playJamNote(t, state.jamStep, isGoldenToast());
+        }
+      }
+
+      body.querySelectorAll(".jam-dot").forEach(d => {
+        d.classList.toggle("playhead", Number(d.dataset.step) === state.jamStep);
+      });
+
+      state.jamStep = (state.jamStep + 1) % 8;
+      jamTimer = setTimeout(scheduleJamTick, ms);
+    }
+
+    render();
+  }
+
+  /* ==================== APP 5: BREADIT ==================== */
+  function mountBreadit(body) {
+    function render() {
+      body.innerHTML = `
+        <div class="breadit-compose">
+          <input type="text" id="breaditInput" placeholder="Post a crumb thought as u/ToastUser..." />
+          <button class="btn-sm active" id="breaditPostBtn">Post</button>
+        </div>
+        <div id="breaditFeed"></div>
+      `;
+
+      const feed = body.querySelector("#breaditFeed");
+      state.posts.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "breadit-post";
+        card.innerHTML = `
+          <div class="breadit-meta">${p.sub} • Posted by ${p.author}</div>
+          <div class="breadit-title">${p.title}</div>
+          <div class="breadit-body">${p.body}</div>
+          <div class="breadit-actions">
+            <button class="btn-sm up-btn">🍞 Toast</button>
+            <strong style="min-width:22px;text-align:center;">${p.votes}</strong>
+            <button class="btn-sm down-btn">💧 Soggy</button>
+          </div>
+        `;
+        card.querySelector(".up-btn").addEventListener("click", () => { p.votes += 1; persistState(); render(); });
+        card.querySelector(".down-btn").addEventListener("click", () => { p.votes -= 1; persistState(); render(); });
+        feed.appendChild(card);
+      });
+
+      body.querySelector("#breaditPostBtn").addEventListener("click", () => {
+        const val = body.querySelector("#breaditInput").value.trim();
+        if (!val) return;
+        state.posts.unshift({
+          id: "p_" + Date.now(),
+          author: `u/Slice_${state.sliceNumber}`,
+          sub: "b/freshslice",
+          title: val,
+          body: `Posted at ${Math.floor(state.browning)}% ${getBrowningStage(state.browning)} on ${state.breadType} bread.`,
+          votes: 1
+        });
+        persistState();
+        render();
+      });
+    }
+    render();
+  }
+
+  /* ==================== APP 6: SETTINGS ==================== */
+  function mountSettings(body) {
+    body.innerHTML = `
+      <div class="setting-group">
+        <label for="breadTypeSel">Bread Type (Screen Texture)</label>
+        <select id="breadTypeSel" style="width:100%;padding:5px;border-radius:6px;border:1px solid #c29b61;">
+          <option value="white">White Sandwich</option>
+          <option value="rye">Caraway Rye</option>
+          <option value="sourdough">Artisan Sourdough</option>
+          <option value="pumpernickel">Dark Pumpernickel</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label for="crustRange">Crust Bezel Thickness: <span id="crustVal">${state.crustThickness}px</span></label>
+        <input type="range" id="crustRange" min="6" max="24" value="${state.crustThickness}" style="width:100%;" />
+      </div>
+      <div class="setting-group">
+        <label for="settingsDialSelect">Balanced Ternary Dial (T / 0 / 1)</label>
+        <select id="settingsDialSelect" style="width:100%;padding:5px;border-radius:6px;border:1px solid #c29b61;">
+          <option value="T">T — Frozen (-1)</option>
+          <option value="0">0 — Bread (0)</option>
+          <option value="1">1 — Toast (+1)</option>
+        </select>
+      </div>
+      <div class="setting-group" style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:800;font-size:11.5px;">Reset Saved Crumbs</span>
+        <button class="btn-sm btn-danger" id="resetStorageBtn">Reset All</button>
+      </div>
+    `;
+
+    const breadSel = body.querySelector("#breadTypeSel");
+    breadSel.value = state.breadType;
+    breadSel.addEventListener("change", (e) => {
+      state.breadType = e.target.value;
+      drawBreadTexture();
+      persistState();
+    });
+
+    const crustRange = body.querySelector("#crustRange");
+    crustRange.addEventListener("input", (e) => {
+      state.crustThickness = Number(e.target.value);
+      body.querySelector("#crustVal").textContent = state.crustThickness + "px";
+      drawBreadTexture();
+      persistState();
+    });
+
+    const dialSel = body.querySelector("#settingsDialSelect");
+    dialSel.value = state.dial;
+    dialSel.addEventListener("change", (e) => setDial(e.target.value));
+
+    body.querySelector("#resetStorageBtn").addEventListener("click", () => {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      state.files = JSON.parse(JSON.stringify(DEFAULT_FILES));
+      state.tray = [];
+      state.posts = JSON.parse(JSON.stringify(DEFAULT_POSTS));
+      refreshExplorerIfOpen();
+    });
+  }
+
+  /* ==================== AUDIO MUTE ==================== */
+  muteBtn.addEventListener("click", () => {
+    muted = !muted;
+    muteBtn.textContent = muted ? "🔇" : "🔊";
+  });
+
+  /* ==================== INIT ==================== */
+  window.addEventListener("resize", () => {
+    if (state.booted) drawBreadTexture();
+  });
+
+  window.addEventListener("load", () => {
+    renderDesktopIconsAndMenu();
+    setDial(state.dial, true);
+    drawBreadTexture();
+    updateBrowningVisuals();
+    requestAnimationFrame(tickCrumbs);
+  });
+})();
+</script>
+</body>
+</html>
