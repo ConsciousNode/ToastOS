@@ -2468,6 +2468,8 @@
   }
 
   /* ==================== APP 5: BREADIT ==================== */
+  // Fix (Kehai, 2026-11-13): posts are user text; escape before building HTML so a post can't run script.
+  const escHtml = (t) => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   function mountBreadit(body) {
     function render() {
       body.innerHTML = `
@@ -2483,9 +2485,9 @@
         const card = document.createElement("div");
         card.className = "breadit-post";
         card.innerHTML = `
-          <div class="breadit-meta">${p.sub} • Posted by ${p.author}</div>
-          <div class="breadit-title">${p.title}</div>
-          <div class="breadit-body">${p.body}</div>
+          <div class="breadit-meta">${escHtml(p.sub)} • Posted by ${escHtml(p.author)}</div>
+          <div class="breadit-title">${escHtml(p.title)}</div>
+          <div class="breadit-body">${escHtml(p.body)}</div>
           <div class="breadit-actions">
             <button class="btn-sm up-btn">🍞 Toast</button>
             <strong style="min-width:22px;text-align:center;">${p.votes}</strong>
